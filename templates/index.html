@@ -14,63 +14,66 @@
       background-color: #f7f9fc;
       font-family: 'Inter', sans-serif;
     }
+    /* Navbar */
     .navbar {
       background-color: #0080ff;
     }
     .navbar-brand, .nav-link, .navbar-text {
       color: #fff !important;
     }
-    .header-section {
+    /* Unified card style */
+    .card {
+      border-radius: 5px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    /* Dispute Ticket Details Card */
+    .header-card {
       background-color: #e9f3ff;
       padding: 20px;
-      margin-top: 20px;
-      border-radius: 5px;
       text-align: center;
     }
-    .header-section img {
-      height: 40px;
-      margin-right: 10px;
-      vertical-align: middle;
-    }
-    .header-section h4 {
-      display: inline;
+    .header-card h4 {
+      margin-bottom: 0.5rem;
       font-weight: 600;
     }
-    .subheader {
+    .header-card .subheader {
       font-size: 0.9rem;
       color: #555;
     }
-    .upload-section {
-      margin-top: 20px;
-    }
+    /* Custom file input styling */
     .custom-file-input-wrapper {
       position: relative;
-      overflow: hidden;
       display: inline-block;
+      width: 100%;
     }
     .custom-file-input {
+      display: inline-block;
       border: 2px solid #0080ff;
       color: #0080ff;
       padding: 6px 12px;
       border-radius: 4px;
       cursor: pointer;
       background-color: #fff;
+      text-align: center;
+      width: 100%;
     }
     .custom-file-input:hover {
       background-color: #e9f3ff;
     }
-    .custom-file-input input[type="file"] {
+    .custom-file-input-wrapper input[type="file"] {
       position: absolute;
       left: 0;
       top: 0;
       opacity: 0;
-      cursor: pointer;
-      height: 100%;
       width: 100%;
+      height: 100%;
+      cursor: pointer;
+      -webkit-appearance: none;
+         -moz-appearance: none;
+              appearance: none;
     }
-    .table-responsive {
-      margin-top: 30px;
-    }
+    /* Footer styling */
     footer {
       margin-top: 40px;
       padding: 20px 0;
@@ -79,6 +82,18 @@
       color: #777;
       border-top: 1px solid #ddd;
     }
+    .spinner-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255,255,255,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1050;
+    }
   </style>
 </head>
 <body>
@@ -86,7 +101,7 @@
   <nav class="navbar navbar-expand-lg" role="navigation">
     <div class="container">
       <a class="navbar-brand" href="#">
-        <img src="https://www.digitalocean.com/_next/static/media/do-logo-blue.9d0d3f51.svg" alt="DigitalOcean Logo">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/DigitalOcean_logo.svg/2560px-DigitalOcean_logo.svg.png" alt="DigitalOcean Logo" style="height:40px; margin-right:10px; vertical-align:middle;">
         Evidence PDF Maker
       </a>
       <span class="navbar-text">Internal Use Only</span>
@@ -101,30 +116,30 @@
   </nav>
 
   <div class="container">
-    <!-- Header: Dispute Ticket Details -->
-    <div class="header-section">
-      <h4>Dispute Ticket Details</h4>
-      <form id="ticket-details-form" aria-label="Dispute ticket details">
+    <!-- Dispute Ticket Details Card -->
+    <div class="card header-card">
+      <div class="card-body">
+        <h4>Dispute Ticket Details <span class="text-danger">*</span></h4>
         <div class="row">
           <div class="col-md-6 mb-2">
-            <label for="team_id" class="form-label">Team ID</label>
+            <label for="team_id" class="form-label">Team ID <span class="text-danger">*</span></label>
             <input type="text" name="team_id" id="team_id" class="form-control" placeholder="Enter Team ID" required pattern="\d{1,10}" maxlength="10" aria-required="true">
           </div>
           <div class="col-md-6 mb-2">
-            <label for="salesforce_ticket" class="form-label">Salesforce Ticket Number</label>
+            <label for="salesforce_ticket" class="form-label">Salesforce Ticket Number <span class="text-danger">*</span></label>
             <input type="text" name="salesforce_ticket" id="salesforce_ticket" class="form-control" placeholder="Enter Salesforce Ticket Number" required pattern="\d{1,10}" maxlength="10" aria-required="true">
           </div>
         </div>
-      </form>
+      </div>
     </div>
 
-    <!-- File Upload Section -->
-    <div class="card shadow-sm upload-section">
+    <!-- File Upload Card -->
+    <div class="card">
       <div class="card-body">
         <h4 class="card-title">Select Files to Upload</h4>
         <p class="small text-muted">Supported file types: PDF, PNG, JPG, JPEG, CSV, DOCX</p>
         <form method="POST" enctype="multipart/form-data" id="upload-form" aria-label="File upload form">
-          <!-- Include the dispute ticket details again as hidden fields -->
+          <!-- Hidden fields to pass dispute ticket details -->
           <input type="hidden" name="team_id" id="hidden_team_id" value="">
           <input type="hidden" name="salesforce_ticket" id="hidden_salesforce_ticket" value="">
           <div class="mb-3">
@@ -251,10 +266,17 @@
 
   <!-- JavaScript to transfer header values into hidden fields -->
   <script>
-    // When dispute details change, update the hidden fields for the upload form.
-    document.getElementById('ticket-details-form').addEventListener('change', function() {
+    // Update hidden fields when dispute details change
+    document.getElementById('ticket-details-form')?.addEventListener('change', function() {
       document.getElementById('hidden_team_id').value = document.getElementById('team_id').value;
       document.getElementById('hidden_salesforce_ticket').value = document.getElementById('salesforce_ticket').value;
+    });
+    // Also update hidden fields when focus leaves each input
+    document.getElementById('team_id').addEventListener('blur', function() {
+      document.getElementById('hidden_team_id').value = this.value;
+    });
+    document.getElementById('salesforce_ticket').addEventListener('blur', function() {
+      document.getElementById('hidden_salesforce_ticket').value = this.value;
     });
     // Spinner overlay on form submission
     document.getElementById('upload-form').addEventListener('submit', function() {
@@ -264,7 +286,7 @@
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Spinner Overlay -->
-  <div id="spinner-overlay" role="alert" aria-live="assertive" style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(255,255,255,0.7); align-items: center; justify-content: center; z-index: 1050;">
+  <div id="spinner-overlay" class="spinner-overlay" role="alert" aria-live="assertive">
     <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
     <span class="visually-hidden">Processing...</span>
   </div>
