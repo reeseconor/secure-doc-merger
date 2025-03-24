@@ -27,8 +27,11 @@ login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
 
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
+
 USER_CREDENTIALS = {
-    "admin": os.getenv("ADMIN_PASSWORD", "password")
+    ADMIN_USERNAME: ADMIN_PASSWORD
 }
 
 class User(UserMixin):
