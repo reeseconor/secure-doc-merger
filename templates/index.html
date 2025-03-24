@@ -21,25 +21,29 @@
     .navbar-brand, .nav-link, .navbar-text {
       color: #fff !important;
     }
-    /* Unified card style */
+    /* Increase space between brand and subtext */
+    .navbar-brand + .navbar-text {
+      margin-left: 20px;
+      font-style: italic;
+    }
+    /* Unified card style for all sections */
     .card {
       border-radius: 5px;
       margin-top: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      background-color: #e9f3ff;  /* Use a consistent light blue background for both sections */
     }
-    /* Dispute Ticket Details Card */
-    .header-card {
-      background-color: #e9f3ff;
+    .card-body {
       padding: 20px;
-      text-align: center;
     }
-    .header-card h4 {
-      margin-bottom: 0.5rem;
+    .card h4 {
       font-weight: 600;
+      margin-bottom: 1rem;
+      text-align: left;
     }
-    .header-card .subheader {
-      font-size: 0.9rem;
-      color: #555;
+    /* Form labels: add required indicator */
+    .form-label .required {
+      color: #dc3545; /* Bootstrap danger red */
     }
     /* Custom file input styling */
     .custom-file-input-wrapper {
@@ -59,7 +63,7 @@
       width: 100%;
     }
     .custom-file-input:hover {
-      background-color: #e9f3ff;
+      background-color: #d0e4ff;
     }
     .custom-file-input-wrapper input[type="file"] {
       position: absolute;
@@ -72,6 +76,10 @@
       -webkit-appearance: none;
          -moz-appearance: none;
               appearance: none;
+    }
+    /* Table and pagination */
+    .table-responsive {
+      margin-top: 30px;
     }
     /* Footer styling */
     footer {
@@ -101,7 +109,7 @@
   <nav class="navbar navbar-expand-lg" role="navigation">
     <div class="container">
       <a class="navbar-brand" href="#">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/DigitalOcean_logo.svg/2560px-DigitalOcean_logo.svg.png" alt="DigitalOcean Logo" style="height:40px; margin-right:10px; vertical-align:middle;">
+        <img src="{{ url_for('static', filename='DO_Logo.svg') }}" alt="DigitalOcean Logo" style="height:40px; margin-right:10px; vertical-align:middle;">
         Evidence PDF Maker
       </a>
       <span class="navbar-text">Internal Use Only</span>
@@ -117,16 +125,16 @@
 
   <div class="container">
     <!-- Dispute Ticket Details Card -->
-    <div class="card header-card">
+    <div class="card">
       <div class="card-body">
-        <h4>Dispute Ticket Details <span class="text-danger">*</span></h4>
+        <h4>Dispute Ticket Details <span class="required">*</span></h4>
         <div class="row">
           <div class="col-md-6 mb-2">
-            <label for="team_id" class="form-label">Team ID <span class="text-danger">*</span></label>
+            <label for="team_id" class="form-label">Team ID <span class="required">*</span></label>
             <input type="text" name="team_id" id="team_id" class="form-control" placeholder="Enter Team ID" required pattern="\d{1,10}" maxlength="10" aria-required="true">
           </div>
           <div class="col-md-6 mb-2">
-            <label for="salesforce_ticket" class="form-label">Salesforce Ticket Number <span class="text-danger">*</span></label>
+            <label for="salesforce_ticket" class="form-label">Salesforce Ticket Number <span class="required">*</span></label>
             <input type="text" name="salesforce_ticket" id="salesforce_ticket" class="form-control" placeholder="Enter Salesforce Ticket Number" required pattern="\d{1,10}" maxlength="10" aria-required="true">
           </div>
         </div>
@@ -160,7 +168,7 @@
         <thead>
           <tr>
             <th>Creator IP</th>
-            <th>Timestamp</th>
+            <th>Created</th>
             <th>Filename</th>
             <th>Salesforce Ticket Number</th>
             <th>Download Count</th>
@@ -264,14 +272,9 @@
     © DigitalOcean 2025. Internal Use Only.
   </footer>
 
-  <!-- JavaScript to transfer header values into hidden fields -->
+  <!-- JavaScript to update hidden fields from dispute details -->
   <script>
     // Update hidden fields when dispute details change
-    document.getElementById('ticket-details-form')?.addEventListener('change', function() {
-      document.getElementById('hidden_team_id').value = document.getElementById('team_id').value;
-      document.getElementById('hidden_salesforce_ticket').value = document.getElementById('salesforce_ticket').value;
-    });
-    // Also update hidden fields when focus leaves each input
     document.getElementById('team_id').addEventListener('blur', function() {
       document.getElementById('hidden_team_id').value = this.value;
     });
