@@ -1,0 +1,10 @@
+flask
+flask-login
+flask-wtf
+wtforms
+python-dotenv
+pymupdf
+python-docx
+pandas
+pillow
+gunicorn
