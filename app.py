@@ -78,7 +78,6 @@ login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
 
-# Make both username and password configurable via environment variables
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "password")
 USER_CREDENTIALS = {ADMIN_USERNAME: ADMIN_PASSWORD}
@@ -114,7 +113,6 @@ def convert_to_pdf(file_obj):
         image.convert("RGB").save(pdf_bytes, format="PDF")
     elif ext == "csv":
         df = pd.read_csv(file_obj)
-        # Write CSV text to BytesIO as plain text PDF substitute
         pdf_bytes.write(df.to_string().encode("utf-8"))
     elif ext == "docx":
         doc = Document(file_obj)
@@ -125,13 +123,12 @@ def convert_to_pdf(file_obj):
 
 def merge_pdfs(pdf_files, team_id):
     """Merge a list of in-memory PDF BytesIO objects and save to disk using team_id in filename."""
-    timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-    filename = f"{team_id} - Evidence {timestamp}.pdf"
+    date_str = time.strftime("%Y-%m-%d")
+    filename = f"User {team_id} - Evidence {date_str}.pdf"
     merged_pdf_path = os.path.join(MERGED_FOLDER, filename)
     
     pdf_writer = fitz.open()
     for pdf_file in pdf_files:
-        # Each pdf_file is a BytesIO; reset pointer
         pdf_file.seek(0)
         pdf_reader = fitz.open(stream=pdf_file.read(), filetype="pdf")
         pdf_writer.insert_pdf(pdf_reader)
@@ -161,11 +158,16 @@ def logout():
 def index():
     db = get_db()
     if request.method == "POST":
-        files = request.files.getlist("files")
+        # Retrieve Dispute Ticket Details first
         team_id = request.form.get("team_id", "").strip()
         salesforce_ticket = request.form.get("salesforce_ticket", "").strip()
-        if not files or not team_id.isdigit() or not salesforce_ticket.isdigit():
-            flash("Please provide valid files and numeric Team ID and Salesforce Ticket.", "danger")
+        if not team_id.isdigit() or not salesforce_ticket.isdigit():
+            flash("Please provide valid numeric values for Team ID and Salesforce Ticket Number.", "danger")
+            return redirect(url_for("index"))
+        
+        files = request.files.getlist("files")
+        if not files:
+            flash("Please select at least one file to upload.", "danger")
             return redirect(url_for("index"))
         
         pdf_bytes_list = []
@@ -177,20 +179,20 @@ def index():
         if not pdf_bytes_list:
             flash("No valid files to process!", "danger")
             return redirect(url_for("index"))
-        # Merge PDFs with team_id used for naming
+        # Merge PDFs using the team_id for naming
         merged_pdf_path, merged_filename = merge_pdfs(pdf_bytes_list, team_id)
         creator_ip = request.remote_addr
         timestamp_now = time.strftime("%Y-%m-%d %H:%M:%S")
-        # Insert into database
+        # Insert record into the database
         db.execute("""
             INSERT INTO merged_files (creator_ip, timestamp, filename, team_id, salesforce_ticket, download_count)
             VALUES (?, ?, ?, ?, ?, 0)
         """, (creator_ip, timestamp_now, merged_filename, team_id, salesforce_ticket))
         db.commit()
-        flash("Files merged successfully!", "success")
-        return redirect(url_for("index"))
+        # Instead of redirecting, return a page that auto-triggers the download
+        return render_template("download_trigger.html", download_url=url_for("download", filename=merged_filename))
     
-    # Pagination logic: page parameter, 25 files per page
+    # Pagination: 25 files per page
     try:
         page = int(request.args.get("page", 1))
     except ValueError:
@@ -200,7 +202,6 @@ def index():
     cur = db.execute("SELECT * FROM merged_files ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset))
     merged_files = cur.fetchall()
     
-    # For each merged file, get download logs (if any)
     files_list = []
     for file in merged_files:
         cur_logs = db.execute("SELECT * FROM download_logs WHERE merged_file_id = ? ORDER BY id DESC", (file["id"],))
@@ -216,10 +217,10 @@ def index():
             "download_logs": download_logs
         })
     
-    # Get total count for pagination controls
     total_files = db.execute("SELECT COUNT(*) as count FROM merged_files").fetchone()["count"]
     total_pages = (total_files + per_page - 1) // per_page
 
+    # Render the default main page.
     return render_template("index.html", merged_files=files_list, page=page, total_pages=total_pages)
 
 @app.route("/download/<filename>")
@@ -228,7 +229,6 @@ def download(filename):
     file_path = os.path.join(MERGED_FOLDER, filename)
     if os.path.exists(file_path):
         db = get_db()
-        # Update download count and log the download
         cur = db.execute("SELECT id, download_count FROM merged_files WHERE filename = ?", (filename,))
         file_row = cur.fetchone()
         if file_row:
@@ -248,9 +248,8 @@ def cleanup():
     now = time.time()
     for file in os.listdir(MERGED_FOLDER):
         file_path = os.path.join(MERGED_FOLDER, file)
-        if os.stat(file_path).st_mtime < now - (30 * 86400):  # 30 days
+        if os.stat(file_path).st_mtime < now - (30 * 86400):
             os.remove(file_path)
-            # Optionally, remove from database as well
     return jsonify({"status": "Cleanup completed"})
 
 if __name__ == "__main__":
